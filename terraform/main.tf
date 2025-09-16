@@ -13,24 +13,25 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-resource "aws_security_group" "app_security" {
-  name        = "app-security"
+resource "aws_security_group" "app_sg" {
+  name        = "app-sg"
   description = "Allow SSH and HTTP"
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "SSH"
+    description = "Allow SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Only allow YOUR IP for SSH
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ For testing only, better to restrict to your IP
   }
 
   ingress {
-    description = "HTTP"
+    description = "Allow HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Open for web traffic
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -39,7 +40,17 @@ resource "aws_security_group" "app_security" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "secure-devops-sg"
+  }
 }
+
+# Fetch default VPC
+data "aws_vpc" "default" {
+  default = true
+}
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
 
