@@ -41,17 +41,33 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["amazon"] # Amazon-owned AMIs
+}
+
 resource "aws_instance" "app" {
-  ami           = "ami-08c40ec9ead489470" # Amazon Linux 2
+  ami           = data.aws_ami.amazon_linux.id
   instance_type = "t3.micro"
-  key_name      = var.key_name # Use existing key
+  key_name      = var.key_name
 
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   tags = {
     Name = "secure-devops-project"
   }
-
+}
   user_data = <<-EOF
               #!/bin/bash
               yum update -y
@@ -60,4 +76,5 @@ resource "aws_instance" "app" {
               usermod -aG docker ec2-user
               EOF
 }
+
 
