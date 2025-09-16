@@ -13,8 +13,8 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-resource "aws_security_group" "app_sg" {
-  name        = "app-sg"
+resource "aws_security_group" "app_security" {
+  name        = "app-security"
   description = "Allow SSH and HTTP"
 
   ingress {
