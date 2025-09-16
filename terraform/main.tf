@@ -40,7 +40,6 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
 data "aws_ami" "amazon_linux" {
   most_recent = true
 
@@ -67,14 +66,14 @@ resource "aws_instance" "app" {
   tags = {
     Name = "secure-devops-project"
   }
-}
+
   user_data = <<-EOF
               #!/bin/bash
               yum update -y
               yum install -y docker
               systemctl start docker
+              systemctl enable docker
               usermod -aG docker ec2-user
               EOF
 }
-
 
