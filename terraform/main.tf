@@ -13,9 +13,32 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-resource "aws_security_group" "app_sg1" {
-  name        = "app-sg1"
-  description = "Allow SSH and HTTP"
+# --- Fetch default VPC ---
+data "aws_vpc" "default" {
+  default = true
+}
+
+# --- Get latest Amazon Linux 2 AMI ---
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["amazon"]
+}
+
+# --- Security Group ---
+resource "aws_security_group" "app_sg" {
+  name        = "secure-devops-sg"
+  description = "Allow SSH (22) and HTTP (80)"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
@@ -23,7 +46,7 @@ resource "aws_security_group" "app_sg1" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # ⚠️ For testing only, better to restrict to your IP
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Replace with your IP in production
   }
 
   ingress {
@@ -46,32 +69,11 @@ resource "aws_security_group" "app_sg1" {
   }
 }
 
-# Fetch default VPC
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["amazon"] # Amazon-owned AMIs
-}
-
+# --- EC2 Instance ---
 resource "aws_instance" "app" {
   ami           = data.aws_ami.amazon_linux.id
   instance_type = "t3.micro"
   key_name      = var.key_name
-
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   tags = {
@@ -86,5 +88,16 @@ resource "aws_instance" "app" {
               systemctl enable docker
               usermod -aG docker ec2-user
               EOF
+}
+
+# --- Outputs ---
+output "ec2_public_ip" {
+  description = "Public IP of EC2 instance"
+  value       = aws_instance.app.public_ip
+}
+
+output "ec2_public_dns" {
+  description = "Public DNS of EC2 instance"
+  value       = aws_instance.app.public_dns
 }
 
